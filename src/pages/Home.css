@@ -1,0 +1,15 @@
+.home-page h4 {
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.home-page p {
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+.home-page button {
+  background-color: #d4c1c1;
+  border: none;
+  color: #000;
+}
