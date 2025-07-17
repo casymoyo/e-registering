@@ -124,8 +124,8 @@ def apply():
     app_obj.fullName = fullName
     app_obj.dob = dob
     app_obj.address = address
-    app_obj.photo_path = photo_path
-    app_obj.cert_path = cert_path
+    app_obj.photoURL = photo_path
+    app_obj.certURL= cert_path
     app_obj.status = "pending"
 
     db.session.add(app_obj)

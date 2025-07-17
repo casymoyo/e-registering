@@ -1,15 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Container, Row, Col, Button, Spinner, Modal, Badge, Card, ListGroup
+  Container, Row, Col, Button, Spinner, Modal, Table, Badge, Card
 } from 'react-bootstrap';
 import { auth } from '../firebase/config';
 import { toast } from 'react-toastify';
+import { FaEye } from 'react-icons/fa';
 
 const AdminDashboard = () => {
   const [applications, setApplications] = useState([]);
-  const [filtered, setFiltered] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState('all');
   const [selectedApp, setSelectedApp] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -29,9 +28,7 @@ const AdminDashboard = () => {
 
       if (!res.ok) throw new Error("Not authorized");
       const data = await res.json();
-      console.log(data, 'data')
       setApplications(data);
-      setFiltered(data);
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -46,6 +43,8 @@ const AdminDashboard = () => {
     });
     return () => unsubscribe();
   }, []);
+
+  const getCount = (status) => applications.filter(app => app.status === status).length;
 
   const handleReview = async (uid, action) => {
     try {
@@ -69,120 +68,125 @@ const AdminDashboard = () => {
     }
   };
 
-  const filterByStatus = (status) => {
-    setActiveFilter(status);
-    if (status === 'all') setFiltered(applications);
-    else setFiltered(applications.filter(app => app.status === status));
-  };
-
-  const getCount = (status) => applications.filter(app => app.status === status).length;
-
   return (
-    <Container fluid className="py-4">
-      <Row>
-        {/* Sidebar */}
-        <Col md={2} className="bg-light p-3 border-end">
-          <h5 className="mb-3">Filters</h5>
-          <ListGroup>
-            <ListGroup.Item
-              action active={activeFilter === 'all'}
-              onClick={() => filterByStatus('all')}
-              className="d-flex justify-content-between align-items-center"
-            >
-              All <Badge bg="secondary">{applications.length}</Badge>
-            </ListGroup.Item>
-            <ListGroup.Item
-              action active={activeFilter === 'pending'}
-              onClick={() => filterByStatus('pending')}
-              className="d-flex justify-content-between align-items-center"
-            >
-              Pending <Badge bg="warning">{getCount('pending')}</Badge>
-            </ListGroup.Item>
-            <ListGroup.Item
-              action active={activeFilter === 'approved'}
-              onClick={() => filterByStatus('approved')}
-              className="d-flex justify-content-between align-items-center"
-            >
-              Approved <Badge bg="success">{getCount('approved')}</Badge>
-            </ListGroup.Item>
-            <ListGroup.Item
-              action active={activeFilter === 'rejected'}
-              onClick={() => filterByStatus('rejected')}
-              className="d-flex justify-content-between align-items-center"
-            >
-              Rejected <Badge bg="danger">{getCount('rejected')}</Badge>
-            </ListGroup.Item>
-          </ListGroup>
-        </Col>
+    <Container fluid className="p-4">
+      {/* Header */}
+      <Row className="mb-4">
+        <Col><h3>Dashboard Overview</h3><p className="text-muted">Manage and track citizen e-ID applications</p></Col>
+      </Row>
 
-        {/* Main Content */}
-        <Col md={10}>
-          <h4 className="mb-4">Applications</h4>
-          {loading ? (
-            <Spinner animation="border" />
-          ) : filtered.length === 0 ? (
-            <p>No applications found for this filter.</p>
-          ) : (
-            <Row xs={1} md={2} lg={3} className="g-4">
-              {filtered.map(app => (
-                <Col key={app.uid}>
-                  <Card className="shadow-sm h-100">
-                    <Card.Img
-                      variant="top"
-                      src={app.photoURL}
-                      alt="Photo"
-                      style={{ objectFit: 'cover', height: '200px' }}
-                    />
-                    <Card.Body>
-                      <Card.Title>{app.fullName}</Card.Title>
-                      <Card.Text>
-                        <strong>DOB:</strong> {app.dob}<br />
-                        <strong>Status:</strong>{" "}
-                        <span className={`text-capitalize fw-bold ${app.status === 'pending' ? 'text-warning' : app.status === 'approved' ? 'text-success' : 'text-danger'}`}>
-                          {app.status}
-                        </span>
-                      </Card.Text>
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedApp(app);
-                          setModalVisible(true);
-                        }}
-                      >
-                        View Details
-                      </Button>
-                    </Card.Body>
-                  </Card>
-                </Col>
-              ))}
-            </Row>
-          )}
+      {/* Stats Cards */}
+      <Row className="g-3 mb-4">
+        <Col md={3}>
+          <Card className="shadow-sm p-3">
+            <h5>Total Applications</h5>
+            <h3>{applications.length}</h3>
+            <small className="text-success">↑ +12% from last month</small>
+          </Card>
+        </Col>
+        <Col md={3}>
+          <Card className="shadow-sm p-3">
+            <h5>Pending Review</h5>
+            <h3>{getCount('pending')}</h3>
+            <small className="text-danger">↓ -8% from last month</small>
+          </Card>
+        </Col>
+        <Col md={3}>
+          <Card className="shadow-sm p-3">
+            <h5>Approved</h5>
+            <h3>{getCount('approved')}</h3>
+            <small className="text-success">↑ +15% from last month</small>
+          </Card>
+        </Col>
+        <Col md={3}>
+          <Card className="shadow-sm p-3">
+            <h5>Rejected</h5>
+            <h3>{getCount('rejected')}</h3>
+            <small className="text-danger">↑ +3% from last month</small>
+          </Card>
         </Col>
       </Row>
 
-      {/* Modal for Application Details */}
+      {/* Recent Applications */}
+      <Row className="mb-3 d-flex justify-content-between align-items-center">
+        <Col><h5>Recent Applications</h5></Col>
+        <Col className="text-end">
+          <Button variant="outline-primary" className="me-2">Filter</Button>
+          <Button variant="outline-secondary">Export</Button>
+        </Col>
+      </Row>
+
+      {loading ? (
+        <Spinner animation="border" />
+      ) : (
+        <Table responsive bordered hover className="bg-white shadow-sm">
+          <thead>
+            <tr>
+              <th>Application ID</th>
+              <th>Applicant</th>
+              <th>Document Type</th>
+              <th>Submitted</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {applications.map(app => (
+              <tr key={app.uid}>
+                <td>{app.applicationId}</td>
+                <td>
+                  <strong>{app.fullName}</strong><br />
+                  <small>{app.email}</small>
+                </td>
+                <td>{app.documentType || 'National ID'}</td>
+                <td>{app.submittedDate || '2024-01-15'}</td>
+                <td>
+                  <Badge bg={
+                    app.status === 'pending' ? 'warning' :
+                    app.status === 'approved' ? 'success' : 'danger'
+                  }>
+                    {app.status}
+                  </Badge>
+                </td>
+                <td>
+                  <Button size="sm" variant="light" onClick={() => {
+                    setSelectedApp(app);
+                    setModalVisible(true);
+                  }}>
+                    <FaEye />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      )}
+
+      {/* Application Details Modal */}
       <Modal show={modalVisible} onHide={() => setModalVisible(false)} size="lg" centered>
         <Modal.Header closeButton>
-          <Modal.Title>Review Application</Modal.Title>
+          <Modal.Title>Application Details</Modal.Title>
         </Modal.Header>
         {selectedApp && (
           <Modal.Body>
             <Row>
               <Col md={6}>
-                <p><strong>Full Name:</strong> {selectedApp.fullName}</p>
+                <p><strong>Name:</strong> {selectedApp.fullName}</p>
+                <p><strong>Email:</strong> {selectedApp.email}</p>
                 <p><strong>DOB:</strong> {selectedApp.dob}</p>
                 <p><strong>Address:</strong> {selectedApp.address}</p>
               </Col>
               <Col md={6}>
-                <div className="mb-2">
-                  <strong>Photo:</strong><br />
-                  <img src={selectedApp.photoURL} className="img-fluid rounded border" alt="User" />
-                </div>
-                <div className="mt-3">
-                  <strong>Birth Certificate:</strong><br />
-                  <img src={selectedApp.certURL} className="img-fluid rounded border" alt="Birth Cert" />
-                </div>
+                <img
+                  src={selectedApp.photoURL}
+                  alt="User"
+                  className="img-fluid rounded border mb-2"
+                />
+                <img
+                  src={selectedApp.certURL}
+                  alt="Certificate"
+                  className="img-fluid rounded border"
+                />
               </Col>
             </Row>
           </Modal.Body>
@@ -190,17 +194,11 @@ const AdminDashboard = () => {
         <Modal.Footer>
           {selectedApp && selectedApp.status === "pending" && (
             <>
-              <Button variant="success" onClick={() => handleReview(selectedApp.uid, "approved")}>
-                Approve
-              </Button>
-              <Button variant="danger" onClick={() => handleReview(selectedApp.uid, "rejected")}>
-                Reject
-              </Button>
+              <Button variant="success" onClick={() => handleReview(selectedApp.uid, "approved")}>Approve</Button>
+              <Button variant="danger" onClick={() => handleReview(selectedApp.uid, "rejected")}>Reject</Button>
             </>
           )}
-          <Button variant="secondary" onClick={() => setModalVisible(false)}>
-            Close
-          </Button>
+          <Button variant="secondary" onClick={() => setModalVisible(false)}>Close</Button>
         </Modal.Footer>
       </Modal>
     </Container>
